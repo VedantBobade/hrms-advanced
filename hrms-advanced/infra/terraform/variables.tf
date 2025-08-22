@@ -5,7 +5,7 @@ variable "prefix" {
 
 variable "location" {
   type        = string
-  default     = "West US 3"
+  default     = "Central US"
 }
 
 variable "postgres_admin" {

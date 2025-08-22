@@ -1,0 +1,124 @@
+name: CI - Build, Scan, Push to ACR
+
+on:
+  push:
+    branches: [ dev, staging, main ]
+    paths:
+      - 'services/**'
+      - 'frontend/**'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches: [ dev ]
+    paths:
+      - 'services/**'
+      - 'frontend/**'
+
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ACR_NAME: ${{ secrets.ACR_NAME }}
+  ACR_RG: ${{ secrets.ACR_RESOURCE_GROUP }}
+  SERVICES: user-service auth-service payroll-service attendance-service notification-service frontend
+
+jobs:
+  build-scan-push:
+    name: Build/Scan/Push (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [ user-service, auth-service, payroll-service, attendance-service, notification-service, frontend ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get ACR login server
+        id: acr
+        run: |
+          ACR_LOGIN_SERVER=$(az acr show -n "$ACR_NAME" -g "$ACR_RG" --query loginServer -o tsv)
+          echo "login_server=$ACR_LOGIN_SERVER" >> $GITHUB_OUTPUT
+          echo "repo=$ACR_LOGIN_SERVER/${{ matrix.service }}" >> $GITHUB_OUTPUT
+
+      - name: Resolve build context
+        id: bf
+        run: |
+          if [ "${{ matrix.service }}" = "frontend" ]; then
+            echo "context=./frontend" >> $GITHUB_OUTPUT
+            echo "dockerfile=./frontend/Dockerfile" >> $GITHUB_OUTPUT
+          else
+            echo "context=./services/${{ matrix.service }}" >> $GITHUB_OUTPUT
+            echo "dockerfile=./services/${{ matrix.service }}/Dockerfile" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker meta (tags)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.acr.outputs.repo }}
+          tags: |
+            type=sha,format=long
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build (local) for scan
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ steps.bf.outputs.context }}
+          file: ${{ steps.bf.outputs.dockerfile }}
+          push: false
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: image
+          image-ref: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-${{ matrix.service }}.sarif
+          vuln-type: os,library
+          exit-code: '1'
+
+      - name: Upload Trivy SARIF to code scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-${{ matrix.service }}.sarif
+
+      - name: ACR Login (Docker)
+        run: az acr login --name $ACR_NAME
+
+      - name: Build & Push to ACR (on branch pushes)
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ steps.bf.outputs.context }}
+          file: ${{ steps.bf.outputs.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Expose canonical image tag
+        if: github.event_name == 'push'
+        id: img
+        run: |
+          echo "sha_tag=${{ steps.acr.outputs.repo }}:${{ github.sha }}" >> $GITHUB_OUTPUT
