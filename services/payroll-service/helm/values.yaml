@@ -1,0 +1,35 @@
+image:
+repository: "<acr>.azurecr.io/payroll-service"
+tag: "latest"
+pullPolicy: IfNotPresent
+
+
+replicaCount: 2
+service:
+type: ClusterIP
+port: 80
+
+
+env:
+PORT: "3002"
+DATABASE_URL: ""
+
+
+autoscaling:
+enabled: true
+minReplicas: 2
+maxReplicas: 10
+targetCPUUtilizationPercentage: 70
+
+
+serviceMonitor:
+enabled: true
+
+
+podDisruptionBudget:
+enabled: true
+minAvailable: 1
+
+
+networkPolicy:
+enabled: true

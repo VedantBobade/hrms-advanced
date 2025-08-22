@@ -1,0 +1,64 @@
+image:
+path: /healthz
+initialDelaySeconds: 5
+periodSeconds: 10
+
+
+readinessProbe:
+path: /readyz
+initialDelaySeconds: 10
+periodSeconds: 10
+failureThreshold: 6
+
+
+autoscaling:
+enabled: true
+minReplicas: 2
+maxReplicas: 10
+targetCPUUtilizationPercentage: 70
+
+
+ingress:
+enabled: false
+className: "nginx"
+hosts:
+- host: user.dev.example.com
+paths:
+- path: /
+pathType: Prefix
+tls: []
+
+
+podDisruptionBudget:
+enabled: true
+minAvailable: 1
+
+
+networkPolicy:
+enabled: true
+egress:
+- to:
+- namespaceSelector: {}
+ports:
+- port: 5432
+protocol: TCP
+ingress:
+- from:
+- namespaceSelector: {}
+ports:
+- port: 80
+
+
+serviceMonitor:
+enabled: true
+interval: 30s
+
+
+keyVaultCSI:
+enabled: false
+tenantId: ""
+keyVaultName: ""
+secrets:
+- objectName: "db-connection"
+objectType: secret
+key: "DATABASE_URL"

@@ -1,0 +1,38 @@
+image:
+repository: "<acr>.azurecr.io/auth-service"
+tag: "latest"
+pullPolicy: IfNotPresent
+
+
+replicaCount: 2
+service:
+type: ClusterIP
+port: 80
+
+
+env:
+PORT: "3001"
+DATABASE_URL: ""
+JWT_SECRET: "change-me"
+JWT_REFRESH_SECRET: "change-me"
+REDIS_URL: ""
+
+
+autoscaling:
+enabled: true
+minReplicas: 2
+maxReplicas: 10
+targetCPUUtilizationPercentage: 70
+
+
+serviceMonitor:
+enabled: true
+
+
+podDisruptionBudget:
+enabled: true
+minAvailable: 1
+
+
+networkPolicy:
+enabled: true
