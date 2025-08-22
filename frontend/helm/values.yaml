@@ -1,0 +1,18 @@
+image:
+repository: "<acr>.azurecr.io/hrms-frontend"
+tag: "latest"
+pullPolicy: IfNotPresent
+
+replicaCount: 2
+service:
+type: ClusterIP
+port: 80
+
+ingress:
+enabled: false
+className: nginx
+hosts:
+  - host: hrms.dev.example.com
+paths:
+  - path: /
+pathType: Prefix

@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-name: {{ include "payroll-service.fullname" . }}
+name: {{ include "notification-service.fullname" . }}
 spec:
 replicas: {{ .Values.replicaCount }}
 selector:
 matchLabels:
-app.kubernetes.io/name: {{ include "payroll-service.name" . }}
+app.kubernetes.io/name: {{ include "notification-service.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 template:
 metadata:
 labels:
-app.kubernetes.io/name: {{ include "payroll-service.name" . }}
+app.kubernetes.io/name: {{ include "notification-service.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
 containers:
@@ -20,27 +20,27 @@ image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
 imagePullPolicy: {{ .Values.image.pullPolicy }}
 ports:
 - name: http
-containerPort: 3002
+containerPort: 3004
 env:
 - name: PORT
 value: {{ .Values.env.PORT | quote }}
 - name: DATABASE_URL
 valueFrom:
 secretKeyRef:
-name: {{ include "payroll-service.fullname" . }}-secrets
+name: {{ include "notification-service.fullname" . }}-secrets
 key: DATABASE_URL
 - name: JWT_SECRET
 valueFrom:
 secretKeyRef:
-name: {{ include "payroll-service.fullname" . }}-secrets
+name: {{ include "notification-service.fullname" . }}-secrets
 key: JWT_SECRET
 - name: JWT_REFRESH_SECRET
 valueFrom:
 secretKeyRef:
-name: {{ include "payroll-service.fullname" . }}-secrets
+name: {{ include "notification-service.fullname" . }}-secrets
 key: JWT_REFRESH_SECRET
 - name: REDIS_URL
 valueFrom:
 secretKeyRef:
-name: {{ include "payroll-service.fullname" . }}-secrets
+name: {{ include "notification-service.fullname" . }}-secrets
 key: REDIS_URL

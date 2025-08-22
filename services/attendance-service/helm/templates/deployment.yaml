@@ -20,7 +20,7 @@ image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
 imagePullPolicy: {{ .Values.image.pullPolicy }}
 ports:
 - name: http
-containerPort: 3001
+containerPort: 3003
 env:
 - name: PORT
 value: {{ .Values.env.PORT | quote }}
