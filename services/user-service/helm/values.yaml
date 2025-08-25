@@ -1,64 +1,97 @@
-image:
-path: /healthz
-initialDelaySeconds: 5
-periodSeconds: 10
+replicaCount: 2
 
+image:
+  repository: hrmsadvacr.azurecr.io/user-service
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 3000
+
+env:
+  PORT: 3000
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+livenessProbe:
+  path: /healthz
+  initialDelaySeconds: 5
+  periodSeconds: 10
 
 readinessProbe:
-path: /readyz
-initialDelaySeconds: 10
-periodSeconds: 10
-failureThreshold: 6
-
+  path: /readyz
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  failureThreshold: 6
 
 autoscaling:
-enabled: true
-minReplicas: 2
-maxReplicas: 10
-targetCPUUtilizationPercentage: 70
-
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
 
 ingress:
-enabled: false
-className: "nginx"
-hosts:
-- host: user.dev.example.com
-paths:
-- path: /
-pathType: Prefix
-tls: []
-
+  enabled: false
+  className: "nginx"
+  hosts:
+    - host: user.dev.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
 
 podDisruptionBudget:
-enabled: true
-minAvailable: 1
+  enabled: true
+  minAvailable: 1
 
-
+# NOTE: if your DB is Azure PaaS (outside cluster), allow egress to the internet on 5432.
+# Prefer adding a tight ipBlock for your DB if you know its subnet.
 networkPolicy:
-enabled: true
-egress:
-- to:
-- namespaceSelector: {}
-ports:
-- port: 5432
-protocol: TCP
-ingress:
-- from:
-- namespaceSelector: {}
-ports:
-- port: 80
-
+  enabled: true
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - port: 5432
+          protocol: TCP
+  ingress:
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - port: 3000
 
 serviceMonitor:
-enabled: true
-interval: 30s
-
+  enabled: true
+  interval: 30s
 
 keyVaultCSI:
-enabled: false
-tenantId: ""
-keyVaultName: ""
-secrets:
-- objectName: "db-connection"
-objectType: secret
-key: "DATABASE_URL"
+  enabled: true
+  tenantId: "<your-tenant-id>"
+  keyVaultName: "<your-kv-name>"
+  # optional: only needed if your template expects them
+  resourceGroup: ""
+  subscriptionId: ""
+  secrets:
+    - objectName: "db-connection"
+      objectType: secret
+      key: "DATABASE_URL"
+    - objectName: "smtp-host"
+      objectType: secret
+      key: "SMTP_HOST"
+    - objectName: "smtp-port"
+      objectType: secret
+      key: "SMTP_PORT"
+    - objectName: "smtp-username"
+      objectType: secret
+      key: "SMTP_USERNAME"
+    - objectName: "smtp-password"
+      objectType: secret
+      key: "SMTP_PASSWORD"
+    - objectName: "smtp-from"
+      objectType: secret
+      key: "SMTP_FROM"
