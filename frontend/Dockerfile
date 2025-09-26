@@ -13,7 +13,7 @@ FROM nginx:1.25-alpine
 WORKDIR /usr/share/nginx/html
 
 # Copy built files
-COPY --from=build /app/build .
+COPY --from=build /app/dist .
 
 # Copy nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
