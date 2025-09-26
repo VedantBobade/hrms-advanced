@@ -1,13 +1,19 @@
 apiVersion: v1
 kind: Service
 metadata:
-name: {{ include "hrms-frontend.fullname" . }}
+  name: {{ include "frontend.fullname" . }}
+  labels:
+    app: {{ include "frontend.name" . }}
+    chart: {{ include "frontend.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
 spec:
-selector:
-app.kubernetes.io/name: {{ include "hrms-frontend.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
-ports:
-- port: {{ .Values.service.port }}
-targetPort: http
-name: http
-type: {{ .Values.service.type }}
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: {{ include "frontend.name" . }}
+    release: {{ .Release.Name }}

@@ -1,17 +1,24 @@
 import express from 'express';
+import dotenv from 'dotenv';
+import pino from 'pino';
+import client from 'prom-client';
+import { Pool } from 'pg';
+import Redis from 'ioredis';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 dotenv.config();
 const app = express();
 const logger = pino();
 app.use(express.json());
-
-
+ 
+ 
 client.collectDefaultMetrics({ prefix: 'auth_service_' });
-
-
+ 
+ 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const redis = process.env.REDIS_URL ? new Redis(process.env.REDIS_URL) : null;
-
-
+ 
+ 
 app.get('/healthz', (_req, res) => res.json({ status: 'ok' }));
 app.get('/readyz', async (_req, res) => {
     try {
@@ -22,8 +29,8 @@ app.get('/readyz', async (_req, res) => {
         res.status(503).json({ status: 'not-ready' });
     }
 });
-
-
+ 
+ 
 // Minimal demo users table assumed: users(id serial, email text unique, password_hash text)
 app.post('/api/v1/auth/register', async (req, res) => {
     const { email, password } = req.body;
@@ -36,8 +43,8 @@ app.post('/api/v1/auth/register', async (req, res) => {
         res.status(409).json({ error: 'exists' });
     }
 });
-
-
+ 
+ 
 app.post('/api/v1/auth/login', async (req, res) => {
     const { email, password } = req.body;
     const { rows } = await pool.query('SELECT id, password_hash FROM users WHERE email=$1', [email]);
@@ -49,8 +56,8 @@ app.post('/api/v1/auth/login', async (req, res) => {
     if (redis) await redis.set(`refresh:${rows[0].id}:${refresh}`, '1', 'EX', 60 * 60 * 24 * 30);
     res.json({ access, refresh });
 });
-
-
+ 
+ 
 app.post('/api/v1/auth/refresh', async (req, res) => {
     const { refresh } = req.body;
     try {
@@ -65,7 +72,7 @@ app.post('/api/v1/auth/refresh', async (req, res) => {
         res.status(401).json({ error: 'invalid' });
     }
 });
-
-
+ 
+ 
 const port = Number(process.env.PORT || 3001);
 app.listen(port, () => logger.info({ port }, 'auth-service up'));

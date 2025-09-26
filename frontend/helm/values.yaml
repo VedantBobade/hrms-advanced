@@ -1,18 +1,28 @@
-image:
-repository: "<acr>.azurecr.io/hrms-frontend"
-tag: "latest"
-pullPolicy: IfNotPresent
-
 replicaCount: 2
-service:
-type: ClusterIP
-port: 80
 
-ingress:
-enabled: false
-className: nginx
-hosts:
-  - host: hrms.dev.example.com
-paths:
-  - path: /
-pathType: Prefix
+image:
+  repository: your-dockerhub-username/hrms-frontend
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: LoadBalancer
+  port: 80
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

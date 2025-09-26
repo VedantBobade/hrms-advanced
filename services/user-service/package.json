@@ -24,6 +24,7 @@
     "@types/nodemailer": "^7.0.1",
     "@types/pg": "^8.15.5",
     "eslint": "^9.7.0",
+    "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.2"
   }
